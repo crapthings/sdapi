@@ -10,11 +10,10 @@ from utils import rounded_size, sc, getSampler, encodeBase64Img
 # override
 safety_checker.StableDiffusionSafetyChecker.forward = sc
 
-model = 'Lykon/dreamshaper-8'
+model = './dreamshaper_8.safetensors'
 
-txt2imgPipe = StableDiffusionPipeline.from_pretrained(
+txt2imgPipe = StableDiffusionPipeline.from_single_file(
     model,
-    cache_dir = './',
     torch_dtype = torch.float16,
     use_safetensors = True,
 )

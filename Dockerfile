@@ -6,6 +6,7 @@ WORKDIR /workspace
 
 COPY app.py .
 COPY utils.py .
+ADD https://huggingface.co/digiplay/DreamShaper_8/resolve/main/dreamshaper_8.safetensors .
 
 RUN apt-get update && pip install runpod \
   accelerate \
