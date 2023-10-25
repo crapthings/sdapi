@@ -1,5 +1,12 @@
 {
     "input": {
-        "prompt": "a dog"
+        "prompt": "a beautiful young lady",
+        "negative_prompt": "text, watermark",
+        "height": 768,
+        "width": 512,
+        "num_inference_steps": 50,
+        "guidance_scale": 7.5,
+        "webhook": "https://webhook.example.com",
+        "debug": true
     }
 }
