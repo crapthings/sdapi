@@ -4,6 +4,8 @@ source venv/bin/activate
 
 # pip install runpod \
 #   diffusers['torch'] \
-#   transformers
+#   transformers \
+#   accelerate \
+#   xformers
 
 python app.py
