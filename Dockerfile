@@ -14,4 +14,4 @@ RUN apt-get update && pip install runpod \
   diffusers['torch'] \
   omegaconf
 
-CMD ['python', '-u', '/app.py']
+CMD ['python3', '-u', '/app.py']

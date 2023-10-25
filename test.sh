@@ -9,4 +9,4 @@ pip install runpod \
   diffusers['torch'] \
   omegaconf
 
-python app.py
+python3 app.py
