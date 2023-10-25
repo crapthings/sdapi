@@ -4,6 +4,8 @@ LABEL maintainer='crapthings@gmail.com'
 
 WORKDIR /workspace
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 COPY app.py .
 COPY utils.py .
 
