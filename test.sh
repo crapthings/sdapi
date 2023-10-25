@@ -6,6 +6,7 @@ pip install runpod \
   accelerate \
   xformers \
   transformers \
-  diffusers['torch']
+  diffusers['torch'] \
+  omegaconf
 
 python app.py
