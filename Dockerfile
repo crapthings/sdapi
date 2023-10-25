@@ -7,9 +7,9 @@ WORKDIR /workspace
 COPY app.py .
 
 RUN apt-get update && pip install runpod \
-  diffusers['torch'] \
-  transformers \
   accelerate \
-  xformers
+  xformers \
+  transformers \
+  diffusers['torch']
 
 CMD ['python', '-u', '/app.py']
