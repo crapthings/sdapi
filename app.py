@@ -1,26 +1,14 @@
-import io
-import base64
 import runpod
 import torch
 from diffusers import StableDiffusionPipeline
-from diffusers import EulerAncestralDiscreteScheduler, UniPCMultistepScheduler
 from diffusers.pipelines.stable_diffusion import safety_checker
 from PIL import Image
 import numpy as np
 
-from utils import rounded_size
+from utils import rounded_size, sc, getSampler, encodeBase64Img
 
 # override
-def sc(self, clip_input, images): return images, [False for i in images]
 safety_checker.StableDiffusionSafetyChecker.forward = sc
-
-def getSampler (name, config):
-    sampler = {
-        'EulerAncestralDiscreteScheduler': EulerAncestralDiscreteScheduler.from_config(config),
-        'UniPCMultistepScheduler': UniPCMultistepScheduler.from_config(config),
-    }
-
-    return sampler.get(name)
 
 model = 'Lykon/dreamshaper-8'
 
@@ -72,20 +60,14 @@ def render (job, _generator = None):
 
     output = output.resize([width, height])
 
-    buffer = io.BytesIO()
-
-    output.save(buffer, 'PNG')
-
-    buffer.seek(0)
-
-    output_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    output_image = encodeBase64Img(output)
 
     if _debug:
         output.save('./debug.png')
 
     result = {
         '_job_id': _id,
-        'output_image': 1 or output_image,
+        'output_image': output_image,
         'prompt': prompt,
         'height': height,
         'width': width,
