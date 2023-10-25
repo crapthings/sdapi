@@ -5,6 +5,7 @@ LABEL maintainer='crapthings@gmail.com'
 WORKDIR /workspace
 
 COPY app.py .
+COPY utils.py .
 
 RUN apt-get update && pip install runpod \
   accelerate \
