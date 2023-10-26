@@ -4,3 +4,4 @@ test-upload.sh
 .env
 .DS_Store
 __pycache__/
+debug.png

@@ -2,6 +2,8 @@ python -m venv venv
 
 source venv/bin/activate
 
+source .env
+
 pip install runpod \
   accelerate \
   xformers \

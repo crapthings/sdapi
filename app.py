@@ -29,14 +29,13 @@ def render (job, _generator = None):
     prompt = _input.get('prompt', 'a dog')
     height = _input.get('height', 512)
     width = _input.get('width', 512)
-    num_inference_steps = np.clip(_input.get('num_inference_steps', 30), 10, 150)
-    guidance_scale = np.clip(_input.get('guidance_scale', 13), 0, 30)
+    num_inference_steps = int(np.clip(_input.get('num_inference_steps', 30), 10, 150))
+    guidance_scale = float(np.clip(_input.get('guidance_scale', 13), 0, 30))
     negative_prompt = _input.get('negative_prompt', None)
 
     sampler = _input.get('sampler', 'EulerAncestralDiscreteScheduler')
     seed = _input.get('seed', None)
 
-    _webhook = _input.get('webhook', None)
     _debug = _input.get('debug', False)
 
     roundedWidth, roundedHeight = rounded_size(width, height)
@@ -56,6 +55,8 @@ def render (job, _generator = None):
         generator = _generator,
     ).images[0]
 
+    output = Image.open('./sample.png')
+
     output = output.resize([width, height])
 
     filename = upload_file(output)
@@ -73,8 +74,7 @@ def render (job, _generator = None):
         'guidance_scale': guidance_scale,
         'negative_prompt': negative_prompt,
         'sampler': sampler,
-        'seed': seed,
-        'webhook': _webhook
+        'seed': seed
     }
 
     return result
