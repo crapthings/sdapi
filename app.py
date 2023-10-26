@@ -10,10 +10,10 @@ from utils import rounded_size, sc, getSampler, upload_file
 # override
 safety_checker.StableDiffusionSafetyChecker.forward = sc
 
-model = '/runpod-volume/dreamshaper_8.safetensors'
+model1 = './dreamshaper_8.safetensors'
 
 txt2imgPipe = StableDiffusionPipeline.from_single_file(
-    model,
+    model1,
     torch_dtype = torch.float16,
 )
 txt2imgPipe.scheduler = getSampler('EulerAncestralDiscreteScheduler', txt2imgPipe.scheduler.config)
