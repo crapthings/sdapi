@@ -55,8 +55,6 @@ def render (job, _generator = None):
         generator = _generator,
     ).images[0]
 
-    output = Image.open('./sample.png')
-
     output = output.resize([width, height])
 
     filename = upload_file(output)
