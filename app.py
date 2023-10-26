@@ -5,7 +5,7 @@ from diffusers.pipelines.stable_diffusion import safety_checker
 from PIL import Image
 import numpy as np
 
-from utils import rounded_size, sc, getSampler, encodeBase64Img
+from utils import rounded_size, sc, getSampler, upload_file
 
 # override
 safety_checker.StableDiffusionSafetyChecker.forward = sc
@@ -15,7 +15,6 @@ model = '/runpod-volume/dreamshaper_8.safetensors'
 txt2imgPipe = StableDiffusionPipeline.from_single_file(
     model,
     torch_dtype = torch.float16,
-    # use_safetensors = True,
 )
 txt2imgPipe.scheduler = getSampler('EulerAncestralDiscreteScheduler', txt2imgPipe.scheduler.config)
 txt2imgPipe.enable_model_cpu_offload()
@@ -59,14 +58,14 @@ def render (job, _generator = None):
 
     output = output.resize([width, height])
 
-    output_image = encodeBase64Img(output)
+    filename = upload_file(output)
 
     if _debug:
         output.save('./debug.png')
 
     result = {
         '_job_id': _id,
-        'output_image': output_image,
+        'filename': filename,
         'prompt': prompt,
         'height': height,
         'width': width,

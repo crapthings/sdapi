@@ -6,12 +6,16 @@ WORKDIR /workspace
 
 COPY app.py .
 COPY utils.py .
+COPY cache.py .
 
 RUN pip install runpod \
   accelerate \
   xformers \
   transformers \
   diffusers['torch'] \
-  omegaconf
+  omegaconf \
+  boto3
+
+RUN python ./cache.py
 
 CMD python -u ./app.py

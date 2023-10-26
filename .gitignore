@@ -1,2 +1,6 @@
 venv
 models*
+test-upload.sh
+.env
+.DS_Store
+__pycache__/

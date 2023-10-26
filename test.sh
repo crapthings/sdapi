@@ -7,6 +7,7 @@ pip install runpod \
   xformers \
   transformers \
   diffusers['torch'] \
-  omegaconf
+  omegaconf \
+  boto3
 
 python app.py
