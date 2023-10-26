@@ -1,6 +1,6 @@
 import runpod
 import torch
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionPipeline, AutoPipelineForImage2Image
 from diffusers.pipelines.stable_diffusion import safety_checker
 from PIL import Image
 import numpy as np
@@ -12,13 +12,13 @@ safety_checker.StableDiffusionSafetyChecker.forward = sc
 
 model1 = './dreamshaper_8.safetensors'
 
-txt2imgPipe = StableDiffusionPipeline.from_single_file(
-    model1,
-    torch_dtype = torch.float16,
-)
+txt2imgPipe = StableDiffusionPipeline.from_single_file(model1, torch_dtype = torch.float16).to('cuda')
 txt2imgPipe.scheduler = getSampler('EulerAncestralDiscreteScheduler', txt2imgPipe.scheduler.config)
-txt2imgPipe.enable_model_cpu_offload()
 txt2imgPipe.enable_xformers_memory_efficient_attention()
+
+img2imgPipe = AutoPipelineForImage2Image.from_pipe(txt2imgPipe).to('cuda')
+img2imgPipe.scheduler = getSampler('EulerAncestralDiscreteScheduler', img2imgPipe.scheduler.config)
+img2imgPipe.enable_xformers_memory_efficient_attention()
 
 def render (job, _generator = None):
     _id = job.get('id')
@@ -35,6 +35,9 @@ def render (job, _generator = None):
 
     sampler = _input.get('sampler', 'EulerAncestralDiscreteScheduler')
     seed = _input.get('seed', None)
+    hires = _input.get('hires', None)
+    strength = float(np.clip(_input.get('strength', .5), 0, 1))
+    scale = float(np.clip(_input.get('scale', 2), 1, 2))
 
     _debug = _input.get('debug', False)
 
@@ -55,6 +58,19 @@ def render (job, _generator = None):
         generator = _generator,
     ).images[0]
 
+    if hires:
+        output = output.resize([int(width * scale), int(height * scale)])
+
+        output = img2imgPipe(
+            prompt = prompt,
+            negative_prompt = negative_prompt,
+            image = output,
+            num_inference_steps = num_inference_steps,
+            guidance_scale = guidance_scale,
+            strength = strength,
+            generator = _generator,
+        ).images[0]
+
     output = output.resize([width, height])
 
     filename = upload_file(output)
@@ -72,7 +88,10 @@ def render (job, _generator = None):
         'guidance_scale': guidance_scale,
         'negative_prompt': negative_prompt,
         'sampler': sampler,
-        'seed': seed
+        'seed': seed,
+        'hires': hires,
+        'strength': strength,
+        'scale': scale
     }
 
     return result
