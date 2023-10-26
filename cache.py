@@ -1,3 +1,4 @@
+import torch
 from diffusers import StableDiffusionPipeline
 
 model1 = './dreamshaper_8.safetensors'
