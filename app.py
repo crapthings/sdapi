@@ -2,6 +2,7 @@ import runpod
 import torch
 from diffusers import StableDiffusionPipeline, AutoPipelineForImage2Image
 from diffusers.pipelines.stable_diffusion import safety_checker
+from diffusers.utils import load_image
 from PIL import Image
 import numpy as np
 
@@ -20,12 +21,13 @@ img2imgPipe = AutoPipelineForImage2Image.from_pipe(txt2imgPipe).to('cuda')
 img2imgPipe.scheduler = getSampler('EulerAncestralDiscreteScheduler', img2imgPipe.scheduler.config)
 img2imgPipe.enable_xformers_memory_efficient_attention()
 
-def render (job, _generator = None):
+def render (job, _generator = None, _output = None):
     _id = job.get('id')
     _input = job.get('input')
 
     print('debug', job, _input)
 
+    image_url = _input.get('image_url', None)
     prompt = _input.get('prompt', 'a dog')
     height = _input.get('height', 512)
     width = _input.get('width', 512)
@@ -43,40 +45,37 @@ def render (job, _generator = None):
 
     roundedWidth, roundedHeight = rounded_size(width, height)
 
-    txt2imgPipe.scheduler = getSampler(sampler, txt2imgPipe.scheduler.config)
+    props = {
+        prompt: prompt,
+        negative_prompt: negative_prompt,
+        image: _output,
+        num_inference_steps: num_inference_steps,
+        guidance_scale: guidance_scale,
+        strength: strength,
+        generator: _generator,
+    }
 
     if seed is not None:
         _generator = torch.Generator(device = 'cuda').manual_seed(seed)
 
-    output = txt2imgPipe(
-        prompt,
-        height = roundedHeight,
-        width = roundedWidth,
-        num_inference_steps = num_inference_steps,
-        guidance_scale = guidance_scale,
-        negative_prompt = negative_prompt,
-        generator = _generator,
-    ).images[0]
+    if image_url is not None:
+        _output = load_image(image_url)
+        img2imgPipe.scheduler = getSampler(sampler, img2imgPipe.scheduler.config)
+        _output = img2imgPipe(**props).images[0]
+    else:
+        txt2imgPipe.scheduler = getSampler(sampler, txt2imgPipe.scheduler.config)
+        _output = txt2imgPipe(**props).images[0]
 
     if hires:
-        output = output.resize([int(width * scale), int(height * scale)])
+        _output = _output.resize([int(width * scale), int(height * scale)])
+        _output = img2imgPipe(**props).images[0]
 
-        output = img2imgPipe(
-            prompt = prompt,
-            negative_prompt = negative_prompt,
-            image = output,
-            num_inference_steps = num_inference_steps,
-            guidance_scale = guidance_scale,
-            strength = strength,
-            generator = _generator,
-        ).images[0]
+    _output = _output.resize([width, height])
 
-    output = output.resize([width, height])
-
-    filename = upload_file(output)
+    filename = upload_file(_output)
 
     if _debug:
-        output.save('./debug.png')
+        _output.save('./debug.png')
 
     result = {
         '_job_id': _id,
