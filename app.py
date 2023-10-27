@@ -64,9 +64,11 @@ def render (job, _output = None):
 
         return {
             '_job_id': _id,
+            'prompt': prompt,
+            'height': _output.height,
+            'width': _output.width,
             'upscale_url': upscale_url,
             'filename': filename,
-            'prompt': prompt,
             'negative_prompt': negative_prompt,
         }
 
