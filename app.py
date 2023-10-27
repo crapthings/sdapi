@@ -1,6 +1,6 @@
 import runpod
 import torch
-from diffusers import StableDiffusionPipeline, AutoPipelineForImage2Image
+from diffusers import StableDiffusionPipeline, AutoPipelineForImage2Image, StableDiffusionUpscalePipeline
 from diffusers.pipelines.stable_diffusion import safety_checker
 from diffusers.utils import load_image
 from PIL import Image
@@ -13,7 +13,7 @@ safety_checker.StableDiffusionSafetyChecker.forward = sc
 
 model1 = './dreamshaper_8.safetensors'
 
-txt2imgPipe = StableDiffusionPipeline.from_single_file(model1, torch_dtype = torch.float16).to('cuda')
+txt2imgPipe = StableDiffusionPipeline.from_single_file(model1, torch_dtype = torch.float16, safety_checker = None).to('cuda')
 txt2imgPipe.scheduler = getSampler('EulerAncestralDiscreteScheduler', txt2imgPipe.scheduler.config)
 txt2imgPipe.enable_xformers_memory_efficient_attention()
 
@@ -21,7 +21,10 @@ img2imgPipe = AutoPipelineForImage2Image.from_pipe(txt2imgPipe).to('cuda')
 img2imgPipe.scheduler = getSampler('EulerAncestralDiscreteScheduler', img2imgPipe.scheduler.config)
 img2imgPipe.enable_xformers_memory_efficient_attention()
 
-def render (job, _generator = None, _output = None):
+sdupscalerPipe = StableDiffusionUpscalePipeline.from_pretrained('stabilityai/stable-diffusion-x4-upscaler', revision = 'fp16', torch_dtype = torch.float16).to('cuda')
+sdupscalerPipe.enable_xformers_memory_efficient_attention()
+
+def render (job, _output = None):
     _id = job.get('id')
     _input = job.get('input')
 
@@ -37,40 +40,57 @@ def render (job, _generator = None, _output = None):
 
     sampler = _input.get('sampler', 'EulerAncestralDiscreteScheduler')
     seed = _input.get('seed', None)
-    hires = _input.get('hires', None)
+
+    enable_2pass = _input.get('enable_2pass', None)
     strength = float(np.clip(_input.get('strength', .5), 0, 1))
     scale = float(np.clip(_input.get('scale', 2), 1, 2))
+
+    upscale_url = _input.get('upscale_url', None)
 
     _debug = _input.get('debug', False)
 
     roundedWidth, roundedHeight = rounded_size(width, height)
 
     props = {
-        prompt: prompt,
-        negative_prompt: negative_prompt,
-        image: _output,
-        num_inference_steps: num_inference_steps,
-        guidance_scale: guidance_scale,
-        strength: strength,
-        generator: _generator,
+        'prompt': prompt,
+        'negative_prompt': negative_prompt,
+        'num_inference_steps': num_inference_steps,
+        'guidance_scale': guidance_scale,
     }
 
+    if upscale_url is not None:
+        _output = sdupscalerPipe(image = load_image(upscale_url), **props).images[0]
+        filename = upload_file(_output)
+
+        return {
+            '_job_id': _id,
+            'upscale_url': upscale_url,
+            'filename': filename,
+            'prompt': prompt,
+            'negative_prompt': negative_prompt,
+        }
+
     if seed is not None:
-        _generator = torch.Generator(device = 'cuda').manual_seed(seed)
+        props['generator'] = torch.Generator(device = 'cuda').manual_seed(seed)
 
     if image_url is not None:
-        _output = load_image(image_url)
+        image = load_image(image_url)
         img2imgPipe.scheduler = getSampler(sampler, img2imgPipe.scheduler.config)
-        _output = img2imgPipe(**props).images[0]
+        _output = img2imgPipe(image = image, strength = strength, **props).images[0]
+
+        if enable_2pass:
+            _output = _output.resize([int(_output.width * scale), int(_output.height * scale)], Image.Resampling.LANCZOS)
+            _output = img2imgPipe(image = _output, **props).images[0]
+            _output = _output.resize([image.width, image.height], Image.Resampling.LANCZOS)
+
     else:
         txt2imgPipe.scheduler = getSampler(sampler, txt2imgPipe.scheduler.config)
-        _output = txt2imgPipe(**props).images[0]
+        _output = txt2imgPipe(height = roundedHeight, width = roundedWidth, **props).images[0]
 
-    if hires:
-        _output = _output.resize([int(width * scale), int(height * scale)])
-        _output = img2imgPipe(**props).images[0]
-
-    _output = _output.resize([width, height])
+        if enable_2pass:
+            _output = _output.resize([int(_output.width * scale), int(_output.height * scale)], Image.Resampling.LANCZOS)
+            _output = img2imgPipe(image = _output, strength = strength, **props).images[0]
+            _output = _output.resize([width, height], Image.Resampling.LANCZOS)
 
     filename = upload_file(_output)
 
@@ -88,7 +108,7 @@ def render (job, _generator = None, _output = None):
         'negative_prompt': negative_prompt,
         'sampler': sampler,
         'seed': seed,
-        'hires': hires,
+        'enable_2pass': enable_2pass,
         'strength': strength,
         'scale': scale
     }

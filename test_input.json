@@ -8,6 +8,9 @@
         "guidance_scale": 7.5,
         "sampler": "UniPCMultistepScheduler",
         "seed": 123,
-        "debug": true
+        "debug": true,
+        "upscale_url": "https://runpod-sdapi.s3.us-west-1.amazonaws.com/00ce5148-fc10-4619-a6f5-11c00b262e31.png",
+        "enable_2pass": true,
+        "strength": 0.72
     }
 }
